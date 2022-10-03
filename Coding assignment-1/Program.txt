@@ -1,0 +1,172 @@
+import numpy as np
+
+# L=int(input("Enter no.of Input Neurons"))
+# M=int(input("Enter no.of Hidden  Neurons"))
+# N=int(input("Enter no.of Output Neurons"))
+# P=int(input("Enter no.of Training Patterns"))
+L=int(2)
+M=int(8)
+N=int(2)
+P=int(247)
+eta=0.8
+alpha=0.7
+MSE=1
+iter=0
+W_old=np.zeros((M,N))
+V_old=np.zeros((L,M))
+
+# Loading of input and output matrices
+ip1,ip2=np.loadtxt('input.txt',skiprows=1,unpack=True)
+ipmatrix=np.stack((ip1,ip2))
+
+op1,op2=np.loadtxt('output.txt',skiprows=1,unpack=True)
+opmatrix=np.stack((op1,op2))
+
+
+# Random initialization of Weight matrices2
+
+V=np.random.rand((L*M))
+V=np.array(V).reshape(L,M)
+
+W=np.random.rand((M*N))
+W=np.array(W).reshape(M,N)
+
+
+# Normalizing
+for i in range(L):
+    min_ip=min(ipmatrix[i])
+    max_ip=max(ipmatrix[i])
+    ipmatrix[i]=(ipmatrix[i]-min_ip)/(max_ip-min_ip)
+    ipmatrix[i]=ipmatrix[i]*0.8+0.1
+ipmatrix=np.transpose(ipmatrix)
+
+for i in range(N):
+    min_op=min(opmatrix[i])
+    max_op=max(opmatrix[i])
+    opmatrix[i]=(opmatrix[i]-min_op)/(max_op-min_op)
+    opmatrix[i] = opmatrix[i] * 0.8 + 0.1
+opmatrix=np.transpose(opmatrix)
+
+# Main loop for calculating the connection weights
+while(MSE>0.001 and iter<1000):
+    iter=iter+1
+
+    # Input to hidden layer
+    ih=np.dot((ipmatrix),V)
+
+    # Transfer function
+    def transfunc(ip):
+        return 1 / (1 + np.exp(-ip))
+
+    # output from hidden layer
+    oh = transfunc(ih)
+
+    # Input to Output layer
+    io=np.transpose(np.dot(oh,W))
+
+    # Output from output layer
+    op=np.transpose(transfunc(io))
+
+    # Error and MSE calculations
+    err= 0.5*((opmatrix-op)**2)
+    temp=np.array(err).reshape(1,(2*P))
+    MSE=(np.sum(temp))/P
+    print(MSE)
+
+    # calculation for Weight updatation
+    delW = np.zeros((M,N))
+
+    for p in range(P):
+        for j in range(M):
+            for k in range(N):
+                delW[j][k] = delW[j][k] + eta * (opmatrix[p][k] - op[p][k]) * (1 - op[p][k] ** 2) * oh[p][j]
+
+    for j in range(M):
+        for k in range(N):
+            delW[j][k] = delW[j][k] / 2
+
+
+    delV = np.zeros((L,M))
+    for p in range(P):
+        for i in range(L):
+            for j in range(M):
+                for k in range(N):
+                    delV[i][j] = delV[i][j] + eta * (opmatrix[p][k] - op[p][k]) * (1 - op[p][k] ** 2) * W[j][k] * oh[p][
+                        j] * (1 - oh[p][j]) * ipmatrix[p][i]
+
+    for i in range(L):
+        for j in range(M):
+            delV[i][j] = delV[i][j] / 4
+
+
+
+    for j in range(M):
+        for k in range(N):
+            W[j][k] = W[j][k] + delW[j][k] + alpha * W_old[j][k]
+    W_old = delW
+    for i in range(L):
+        for j in range(M):
+            V[i][j] = V[i][j] + delV[i][j] + alpha * V_old[i][j]
+    V_old = delV
+
+# printing MSE after 1000 no. of iterations for training patterns
+print("MSE of Training pattern::",MSE)
+
+
+# Testing of patterns
+
+# Data for testing pattern
+Lt=int(2)
+Mt=int(8)
+Nt=int(2)
+Pt=60
+MSEt=1
+itert=0
+# Loading of input and output matrices
+ip1,ip2=np.loadtxt('inputtest.txt',skiprows=1,unpack=True)
+ipmatrix=np.stack((ip1,ip2))
+
+op1,op2=np.loadtxt('outputtest.txt',skiprows=1,unpack=True)
+opmatrix=np.stack((op1,op2))
+
+# Normalizing
+for i in range(Lt):
+    min_ip=min(ipmatrix[i])
+    max_ip=max(ipmatrix[i])
+    ipmatrix[i]=(ipmatrix[i]-min_ip)/(max_ip-min_ip)
+    ipmatrix[i]=ipmatrix[i]*0.8+0.1
+ipmatrix=np.transpose(ipmatrix)
+
+for i in range(Nt):
+    min_op=min(opmatrix[i])
+    max_op=max(opmatrix[i])
+    opmatrix[i]=(opmatrix[i]-min_op)/(max_op-min_op)
+    opmatrix[i] = opmatrix[i] * 0.8 + 0.1
+opmatrix=np.transpose(opmatrix)
+
+# Input to hidden layer
+ih = np.dot((ipmatrix), V)
+
+# Transfer function
+def transfunc(ip):
+    return 1 / (1 + np.exp(-ip))
+
+# Output from hidden layer
+oh = transfunc(ih)
+
+# Input to output layer
+io = np.transpose(np.dot(oh, W))
+
+# Output frm output layer
+op = np.transpose(transfunc(io))
+
+# Error and MSE calculation
+err = 0.5 * ((opmatrix - op) ** 2)
+temp = np.array(err).reshape(1, (2 * Pt))
+MSEt = (np.sum(temp)) / Pt
+
+# printing of MSE for testing pattern
+print("MSE of Testing pattern:", MSEt)
+
+
+
